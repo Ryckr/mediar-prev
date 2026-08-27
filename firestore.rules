@@ -1,0 +1,70 @@
+rules_version = '2';
+
+// =====================================================================
+// REGRAS DE SEGURANÇA DO FIRESTORE — MediarPrev
+// =====================================================================
+// Cole este conteúdo em: Firebase Console > Firestore Database > Regras.
+//
+// Princípios aplicados:
+// 1) Ninguém não autenticado lê ou escreve nada.
+// 2) Mesmo autenticado, só quem estiver na coleção "allowed_users"
+//    (com active == true) consegue ler/gravar clientes e fichas.
+//    Isso é o que garante que "só algumas pessoas" usem o sistema.
+// 3) A própria coleção "allowed_users" não pode ser editada pelo
+//    cliente (app) — só pelo Firebase Console ou por um administrador
+//    com acesso direto ao projeto. Isso evita que alguém se
+//    autoautorize.
+// 4) Validação básica de tipos/tamanho nos campos gravados, para
+//    reduzir o risco de dados malformados ou ataques de gravação em
+//    massa.
+// =====================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function estaAutenticado() {
+      return request.auth != null;
+    }
+
+    function estaAutorizado() {
+      return estaAutenticado() &&
+        exists(/databases/$(database)/documents/allowed_users/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/allowed_users/$(request.auth.uid)).data.active == true;
+    }
+
+    // Lista de pessoas autorizadas — gerenciada manualmente pelo
+    // administrador (Firebase Console). Cada usuário só pode LER o
+    // próprio registro (para o app conferir se está liberado);
+    // ninguém escreve aqui pelo app.
+    match /allowed_users/{userId} {
+      allow read: if estaAutenticado() && request.auth.uid == userId;
+      allow write: if false;
+    }
+
+    // Clientes do painel (kanban)
+    match /clients/{clientId} {
+      allow read: if estaAutorizado();
+      allow create: if estaAutorizado()
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() > 0
+        && request.resource.data.nome.size() < 300;
+      allow update: if estaAutorizado();
+      allow delete: if estaAutorizado();
+    }
+
+    // Fichas digitais de atendimento (dados sensíveis: CPF, saúde,
+    // renda, etc. dentro do mapa "fields")
+    match /fichas/{fichaId} {
+      allow read: if estaAutorizado();
+      allow create: if estaAutorizado()
+        && request.resource.data.fields is map;
+      allow update: if estaAutorizado();
+      allow delete: if estaAutorizado();
+    }
+
+    // Qualquer outra coleção não prevista fica bloqueada por padrão.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

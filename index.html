@@ -1,0 +1,225 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>MediarPrev — Sistema de Atendimento</title>
+<link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+
+<!-- ===================== TELA DE LOGIN ===================== -->
+<div id="loginScreen">
+  <div class="login-box">
+    <div class="login-brand">MEDIAR<span>Prev</span></div>
+    <div class="login-sub">Acesso restrito — sistema interno de atendimento</div>
+    <form id="loginForm">
+      <label>E-mail</label>
+      <input type="email" id="loginEmail" autocomplete="username" required>
+      <label>Senha</label>
+      <input type="password" id="loginSenha" autocomplete="current-password" required>
+      <button type="submit" id="btnLogin">Entrar</button>
+    </form>
+    <div class="login-error" id="loginError"></div>
+    <div class="login-foot">Acesso liberado apenas para usuários autorizados pelo administrador. Este sistema lida com dados pessoais sensíveis — não compartilhe sua senha.</div>
+  </div>
+</div>
+
+<!-- ===================== APP ===================== -->
+<div id="appShell">
+  <header class="app-header">
+    <div class="header-wrap">
+      <div>
+        <div class="brand">MEDIAR<span>Prev</span></div>
+        <div class="subtitle">Sistema de Atendimento — Painel de Clientes + Ficha Digital</div>
+      </div>
+      <div class="session-info">
+        <span>Conectado como <b id="sessionEmail"></b></span>
+        <button class="btn-logout" id="btnLogout">Sair</button>
+      </div>
+    </div>
+  </header>
+
+  <nav class="app-nav">
+    <button id="navKanban" class="active">🗂 Painel de clientes</button>
+    <button id="navFicha">📝 Ficha de atendimento</button>
+    <button id="navFichas">📄 Fichas salvas</button>
+  </nav>
+
+  <main class="app-main">
+    <div class="notice">
+      <b>Uso interno:</b> esta ferramenta organiza a triagem administrativa. Ela não substitui a conferência dos requisitos e documentos vigentes no momento do atendimento, nem produz conclusão jurídica — questões jurídicas devem ser encaminhadas ao profissional habilitado. Os dados são sincronizados em nuvem apenas para as pessoas autorizadas.
+    </div>
+
+    <!-- ===================== PAINEL KANBAN ===================== -->
+    <section id="panelKanban" class="panel active">
+      <div class="kb-toolbar">
+        <input type="text" class="kb-search" id="searchBox" placeholder="Buscar cliente por nome...">
+        <div class="kb-legend">
+          <span><span class="kb-legend-dot" style="background:#2c8d56"></span>Concluído (deferido)</span>
+          <span><span class="kb-legend-dot" style="background:#c0392b"></span>Encaminhado</span>
+        </div>
+        <button class="btn gold" id="btnNovoCliente">＋ Novo cliente</button>
+        <button class="btn" id="btnArquivo">📁 Arquivados (<span id="arqCount">0</span>)</button>
+        <button class="btn" id="btnBaixarBackup">⬇ Backup (.json)</button>
+        <button class="btn" id="btnAbrirBackup">📂 Importar backup</button>
+        <input type="file" id="fileInput" accept=".json,application/json" style="display:none;">
+      </div>
+      <div class="kb-scroll">
+        <div class="kb-canvas" id="canvas"></div>
+      </div>
+    </section>
+
+    <!-- ===================== PAINEL FICHA ===================== -->
+    <section id="panelFicha" class="panel">
+      <div class="ficha-toolbar">
+        <button class="btn" id="btnNovaFicha">Nova ficha</button>
+        <button class="btn gold" id="btnSalvarNuvem">☁ Salvar na nuvem</button>
+        <button class="btn dark" id="btnExportarTipo">📄 Exportar PDF (ficha do tipo selecionado)</button>
+        <button class="btn dark" id="btnExportarCompleta">📄 Exportar PDF (ficha completa)</button>
+        <button class="btn danger hidden" id="btnExcluirFicha">Excluir ficha</button>
+        <button class="btn danger" id="btnLimparFicha">Limpar campos</button>
+        <span class="status-pill" id="fichaSyncStatus"></span>
+      </div>
+
+      <div class="link-banner pdf-exclude" id="linkBanner"></div>
+      <div class="notice hidden pdf-exclude" id="draftBanner">
+        Encontramos um rascunho não salvo na nuvem neste navegador.
+        <button class="btn" id="btnRestaurarRascunho">Restaurar rascunho</button>
+        <button class="btn danger" id="btnDescartarRascunho">Descartar</button>
+      </div>
+
+      <div class="tabs pdf-exclude" id="fichaTabs"></div>
+
+      <div id="fichaSections">
+ <section id="s0" class="active ficha-section"><h2>1. Ficha geral do cliente</h2><div class="hint">Preencha em todo atendimento e depois utilize a ficha específica do benefício/serviço.</div>
+  <div class="grid">
+   <div class="field span-8"><label>Nome completo</label><input data-key="cliente.nome"></div><div class="field"><label>Data da triagem</label><input type="date" data-key="controle.data"></div><div class="field"><label>Atendente</label><input data-key="controle.atendente"></div>
+   <div class="field"><label>CPF</label><input data-key="cliente.cpf"></div><div class="field"><label>RG/CIN/CNH</label><input data-key="cliente.doc"></div><div class="field"><label>Data de nascimento</label><input type="date" data-key="cliente.nasc"></div>
+   <div class="field"><label>Nome da mãe</label><input data-key="cliente.mae"></div><div class="field"><label>Estado civil</label><input data-key="cliente.estadoCivil"></div><div class="field"><label>Profissão / ocupação</label><input data-key="cliente.profissao"></div>
+   <div class="field"><label>Telefone / WhatsApp</label><input data-key="cliente.telefone"></div><div class="field"><label>E-mail</label><input type="email" data-key="cliente.email"></div><div class="field"><label>NIT/PIS/PASEP</label><input data-key="cliente.nit"></div>
+   <div class="field span-8"><label>Endereço completo</label><input data-key="cliente.endereco"></div><div class="field"><label>CEP</label><input data-key="cliente.cep"></div><div class="field"><label>Cidade/UF</label><input data-key="cliente.cidade"></div>
+  </div>
+  <h3>Dados previdenciários e objetivo</h3><div class="grid">
+   <div class="field"><label>Categoria atual / última categoria de segurado</label><input data-key="prev.categoria"></div><div class="field"><label>Último vínculo / empregador</label><input data-key="prev.ultimoVinculo"></div><div class="field"><label>Data aproximada da última contribuição</label><input type="date" data-key="prev.ultimaContrib"></div>
+   <div class="field"><label>NIS/CadÚnico</label><input data-key="prev.nis"></div><div class="field"><label>Benefício atual / NB (se houver)</label><input data-key="prev.nb"></div><div class="field"><label>Já existe protocolo/processo no INSS?</label><select data-key="prev.protocolo"><option></option><option>Sim</option><option>Não</option><option>Não informado</option></select></div>
+   <div class="field"><label>Possui acesso ao Meu INSS?</label><select data-key="prev.meuinss"><option></option><option>Sim</option><option>Não</option></select></div><div class="field"><label>Cadastro gov.br atualizado?</label><select data-key="prev.govbr"><option></option><option>Sim</option><option>Não</option></select></div><div class="field"><label>Possui CadÚnico?</label><select data-key="prev.cadunico"><option></option><option>Sim</option><option>Não</option><option>Não se aplica</option></select></div>
+   <div class="field span-6"><label>Tipo de atendimento / benefício solicitado</label><select data-key="triagem.tipo"><option value=""></option><option value="s1">Aposentadoria</option><option value="s2">Aposentadoria rural</option><option value="s3">Benefício por incapacidade temporária</option><option value="s4">Auxílio-acidente</option><option value="s5">BPC/LOAS — pessoa idosa</option><option value="s6">BPC/LOAS — pessoa com deficiência</option><option value="s7">Pensão por morte</option><option value="s8">Auxílio-reclusão</option><option value="s9">Salário-maternidade</option><option value="s10">Serviço administrativo complementar</option></select></div><div class="field span-6"><label>O que o cliente deseja solicitar / regularizar?</label><textarea data-key="triagem.objetivo"></textarea></div><div class="field span-12"><label>Principal dúvida ou necessidade</label><textarea data-key="triagem.duvida"></textarea></div><div class="field span-12"><label>Existe prazo, exigência, perícia ou outro compromisso marcado?</label><textarea data-key="triagem.prazo"></textarea></div>
+  </div>
+ </section>
+
+ <section id="s1" class="ficha-section"><h2>2. Aposentadoria — entrevista administrativa</h2><div class="hint">Levante períodos e documentos. Não conclua juridicamente nesta ficha qual regra de aposentadoria se aplica.</div><div class="grid">
+  <div class="field"><label>Idade atual</label><input data-key="apo.idade"></div><div class="field span-6"><label>Data aproximada do primeiro vínculo/contribuição</label><input type="date" data-key="apo.primeiraContrib"></div><div class="field"><label>Possui CTPS física e/ou digital?</label><input data-key="apo.ctps"></div>
+  <div class="field span-12"><label>Já trabalhou com carteira assinada? Onde e em quais períodos?</label><textarea data-key="apo.clt"></textarea></div><div class="field span-12"><label>Já foi contribuinte individual/autônomo? Quais períodos?</label><textarea data-key="apo.individual"></textarea></div><div class="field span-12"><label>Já foi segurado facultativo? Quais períodos?</label><textarea data-key="apo.facultativo"></textarea></div>
+  <div class="field span-12"><label>Já exerceu atividade rural? Quais períodos/local?</label><textarea data-key="apo.rural"></textarea></div><div class="field span-12"><label>Exerceu atividade com possível exposição a agentes nocivos? Onde/períodos?</label><textarea data-key="apo.especial"></textarea></div><div class="field span-12"><label>Possui tempo em outro regime de previdência (RPPS)?</label><textarea data-key="apo.rpps"></textarea></div>
+  <div class="field span-12"><label>Há períodos ausentes ou incorretos no CNIS? Há divergências de vínculos, datas ou salários?</label><textarea data-key="apo.cnis"></textarea></div><div class="field span-12"><label>Observações</label><textarea data-key="apo.obs"></textarea></div>
+ </div><div id="docs-apo"></div></section>
+
+ <section id="s2" class="ficha-section"><h2>3. Aposentadoria rural — entrevista</h2><div class="hint">Levante histórico rural e documentos que ajudem a demonstrar a atividade. Não conclua o direito nesta ficha.</div><div class="grid">
+  <div class="field span-8"><label>Imóvel / localidade rural</label><input data-key="rural.local"></div><div class="field"><label>Município/UF</label><input data-key="rural.municipio"></div><div class="field"><label>Período aproximado</label><input data-key="rural.periodo"></div>
+  <div class="field span-6"><label>Tipo de atividade / categoria informada</label><input data-key="rural.tipo"></div><div class="field span-6"><label>Trabalhava em regime de economia familiar?</label><select data-key="rural.economia"><option></option><option>Sim</option><option>Não</option><option>Não informado</option></select></div>
+  <div class="field span-12"><label>Familiares que participavam</label><textarea data-key="rural.familiares"></textarea></div><div class="field span-12"><label>Como a produção era comercializada?</label><textarea data-key="rural.comercializacao"></textarea></div><div class="field span-12"><label>Possui propriedade / arrendamento / parceria / comodato / assentamento?</label><textarea data-key="rural.posse"></textarea></div><div class="field span-12"><label>Houve períodos urbanos entre os períodos rurais?</label><textarea data-key="rural.urbanos"></textarea></div><div class="field span-12"><label>Documentos rurais já disponíveis</label><textarea data-key="rural.docs"></textarea></div><div class="field span-12"><label>Observações</label><textarea data-key="rural.obs"></textarea></div>
+ </div><div id="docs-rural"></div></section>
+
+ <section id="s3" class="ficha-section"><h2>4. Benefício por incapacidade temporária — entrevista</h2><div class="hint">Organize as informações e documentos médicos apresentados. Não avalie diagnóstico, incapacidade ou resultado de perícia nesta ficha.</div><div class="grid">
+  <div class="field span-6"><label>Atividade/profissão atual ou na data do afastamento</label><input data-key="incap.profissao"></div><div class="field"><label>Data em que deixou de trabalhar/afastou-se</label><input type="date" data-key="incap.afastamento"></div><div class="field"><label>Data de início dos sintomas/condição relatada</label><input type="date" data-key="incap.inicio"></div>
+  <div class="field span-12"><label>Descrição da condição informada pelo cliente</label><textarea data-key="incap.condicao"></textarea></div><div class="field span-6"><label>Existe atestado médico? Até quando?</label><textarea data-key="incap.atestado"></textarea></div><div class="field span-6"><label>Possui laudos/relatórios médicos?</label><textarea data-key="incap.laudos"></textarea></div>
+  <div class="field span-12"><label>Quais exames possui?</label><textarea data-key="incap.exames"></textarea></div><div class="field span-6"><label>Houve internação/cirurgia/tratamento relevante?</label><textarea data-key="incap.tratamento"></textarea></div><div class="field span-6"><label>Houve acidente?</label><textarea data-key="incap.acidente"></textarea></div>
+  <div class="field span-6"><label>Já recebeu benefício por incapacidade? Qual/NB?</label><input data-key="incap.beneficio"></div><div class="field span-6"><label>Tem perícia ou exigência marcada?</label><input data-key="incap.pericia"></div><div class="field span-12"><label>Observações</label><textarea data-key="incap.obs"></textarea></div>
+ </div><div id="docs-incap"></div></section>
+
+ <section id="s4" class="ficha-section"><h2>5. Auxílio-acidente — entrevista</h2><div class="grid">
+  <div class="field"><label>Data do acidente</label><input type="date" data-key="acid.data"></div><div class="field span-6"><label>Tipo / descrição do acidente</label><input data-key="acid.tipo"></div><div class="field span-6"><label>O acidente ocorreu no trabalho?</label><select data-key="acid.trabalho"><option></option><option>Sim</option><option>Não</option><option>Não informado</option></select></div>
+  <div class="field span-6"><label>Atividade exercida na época</label><input data-key="acid.atividade"></div><div class="field span-6"><label>Houve CAT?</label><select data-key="acid.cat"><option></option><option>Sim</option><option>Não</option><option>Não se sabe</option></select></div><div class="field span-12"><label>Lesão/sequela relatada</label><textarea data-key="acid.lesao"></textarea></div><div class="field span-12"><label>Houve tratamento, cirurgia ou fisioterapia?</label><textarea data-key="acid.tratamento"></textarea></div><div class="field span-12"><label>Quais limitações persistem?</label><textarea data-key="acid.limitacoes"></textarea></div><div class="field span-6"><label>Houve benefício por incapacidade anterior? Qual/NB?</label><input data-key="acid.beneficio"></div><div class="field span-6"><label>Existe processo/protocolo relacionado?</label><input data-key="acid.protocolo"></div><div class="field span-12"><label>Observações</label><textarea data-key="acid.obs"></textarea></div>
+ </div><div id="docs-acid"></div></section>
+
+ <section id="s5" class="ficha-section"><h2>6. BPC/LOAS — pessoa idosa</h2><div class="hint">Levantamento socioeconômico e cadastral. Não conclua juridicamente sobre elegibilidade.</div><div class="grid">
+  <div class="field"><label>Idade</label><input data-key="bpc_idoso.idade"></div><div class="field span-8"><label>Quem mora na residência? Nome, CPF e parentesco</label><textarea data-key="bpc_idoso.familia"></textarea></div>
+  <div class="field span-12"><label>Renda mensal de cada integrante</label><textarea data-key="bpc_idoso.renda"></textarea></div><div class="field span-12"><label>Alguém recebe aposentadoria, pensão, BPC ou outro benefício?</label><textarea data-key="bpc_idoso.beneficios"></textarea></div><div class="field span-6"><label>CadÚnico? Data da última atualização</label><input data-key="bpc_idoso.cadunico"></div><div class="field span-6"><label>NIS dos integrantes</label><input data-key="bpc_idoso.nis"></div><div class="field span-12"><label>Há despesas relevantes com saúde/cuidados?</label><textarea data-key="bpc_idoso.despesas"></textarea></div><div class="field span-12"><label>Houve mudança recente na renda ou composição familiar?</label><textarea data-key="bpc_idoso.mudanca"></textarea></div><div class="field span-12"><label>Observações</label><textarea data-key="bpc_idoso.obs"></textarea></div>
+ </div><div id="docs-bpc-idoso"></div></section>
+
+ <section id="s6" class="ficha-section"><h2>7. BPC/LOAS — pessoa com deficiência</h2><div class="hint">Levantamento funcional, médico e socioeconômico. A avaliação da deficiência e da situação socioeconômica é realizada pelos órgãos competentes.</div><div class="grid">
+  <div class="field"><label>Idade</label><input data-key="bpc_pcd.idade"></div><div class="field span-8"><label>Condição / limitação relatada</label><textarea data-key="bpc_pcd.condicao"></textarea></div><div class="field span-6"><label>Quando começou?</label><input data-key="bpc_pcd.inicio"></div><div class="field span-6"><label>Quais atividades diárias estão limitadas?</label><textarea data-key="bpc_pcd.limitacoes"></textarea></div>
+  <div class="field span-12"><label>Quem auxilia nos cuidados?</label><textarea data-key="bpc_pcd.auxilio"></textarea></div><div class="field span-12"><label>Quem mora na residência?</label><textarea data-key="bpc_pcd.familia"></textarea></div><div class="field span-12"><label>Renda de cada integrante</label><textarea data-key="bpc_pcd.renda"></textarea></div><div class="field span-6"><label>CadÚnico atualizado? Data</label><input data-key="bpc_pcd.cadunico"></div><div class="field span-6"><label>NIS/CPF dos integrantes</label><input data-key="bpc_pcd.nis"></div><div class="field span-12"><label>Despesas contínuas com saúde/cuidados/acessibilidade</label><textarea data-key="bpc_pcd.despesas"></textarea></div><div class="field span-12"><label>Observações</label><textarea data-key="bpc_pcd.obs"></textarea></div>
+ </div><div id="docs-bpc-pcd"></div></section>
+
+ <section id="s7" class="ficha-section"><h2>8. Pensão por morte — entrevista</h2><h3>Dados do segurado falecido</h3><div class="grid"><div class="field span-6"><label>Nome completo</label><input data-key="pensao.falecidoNome"></div><div class="field"><label>CPF</label><input data-key="pensao.falecidoCpf"></div><div class="field"><label>Data do óbito</label><input type="date" data-key="pensao.obito"></div><div class="field span-6"><label>Última atividade / vínculo</label><input data-key="pensao.atividade"></div><div class="field"><label>Era aposentado?</label><select data-key="pensao.aposentado"><option></option><option>Sim</option><option>Não</option><option>Não informado</option></select></div><div class="field span-6"><label>Último empregador</label><input data-key="pensao.empregador"></div><div class="field span-6"><label>Havia atividade rural?</label><input data-key="pensao.rural"></div><div class="field span-12"><label>Documentos previdenciários disponíveis</label><textarea data-key="pensao.docsFalecido"></textarea></div></div>
+  <h3>Dados do requerente/dependente</h3><div class="grid"><div class="field span-6"><label>Nome completo</label><input data-key="pensao.reqNome"></div><div class="field"><label>CPF</label><input data-key="pensao.reqCpf"></div><div class="field"><label>Data de nascimento</label><input type="date" data-key="pensao.reqNasc"></div><div class="field span-6"><label>Parentesco / vínculo com o falecido</label><input data-key="pensao.parentesco"></div><div class="field span-6"><label>Era cônjuge/companheiro(a)?</label><select data-key="pensao.conjuge"><option></option><option>Sim</option><option>Não</option></select></div><div class="field span-6"><label>É filho/enteado? Idade</label><input data-key="pensao.filho"></div><div class="field span-6"><label>É pai/mãe?</label><select data-key="pensao.pais"><option></option><option>Sim</option><option>Não</option></select></div><div class="field span-6"><label>É irmão? Idade</label><input data-key="pensao.irmao"></div><div class="field span-12"><label>Há outros dependentes conhecidos?</label><textarea data-key="pensao.outros"></textarea></div><div class="field span-12"><label>Há dependência econômica a comprovar?</label><textarea data-key="pensao.dependencia"></textarea></div></div><div id="docs-pensao"></div></section>
+
+ <section id="s8" class="ficha-section"><h2>9. Auxílio-reclusão — entrevista</h2><div class="grid"><div class="field span-6"><label>Nome do segurado preso</label><input data-key="reclusao.nome"></div><div class="field"><label>CPF</label><input data-key="reclusao.cpf"></div><div class="field"><label>Data do recolhimento</label><input type="date" data-key="reclusao.data"></div><div class="field span-6"><label>Unidade prisional</label><input data-key="reclusao.unidade"></div><div class="field"><label>Regime informado</label><input data-key="reclusao.regime"></div><div class="field span-6"><label>Último empregador / atividade</label><input data-key="reclusao.atividade"></div><div class="field span-6"><label>Última contribuição aproximada</label><input data-key="reclusao.ultimaContrib"></div><div class="field span-6"><label>Possui CTPS/CNIS?</label><input data-key="reclusao.ctps"></div><div class="field span-6"><label>Recebia benefício/salário na data da prisão?</label><input data-key="reclusao.beneficio"></div><h3 class="field span-12">Dados do dependente</h3><div class="field span-6"><label>Nome completo</label><input data-key="reclusao.depNome"></div><div class="field"><label>CPF</label><input data-key="reclusao.depCpf"></div><div class="field"><label>Data de nascimento</label><input type="date" data-key="reclusao.depNasc"></div><div class="field span-6"><label>Parentesco / vínculo</label><input data-key="reclusao.parentesco"></div><div class="field span-12"><label>Há outros dependentes?</label><textarea data-key="reclusao.outros"></textarea></div><div class="field span-12"><label>Há dependência econômica a comprovar?</label><textarea data-key="reclusao.dependencia"></textarea></div></div><div id="docs-reclusao"></div></section>
+
+ <section id="s9" class="ficha-section"><h2>10. Salário-maternidade — entrevista</h2><div class="grid"><div class="field span-6"><label>Evento</label><select data-key="sm.evento"><option></option><option>Parto</option><option>Adoção</option><option>Guarda para adoção</option><option>Aborto não criminoso</option></select></div><div class="field span-6"><label>Data do evento ou data prevista do parto</label><input type="date" data-key="sm.dataEvento"></div><div class="field span-6"><label>Categoria profissional na época</label><input data-key="sm.categoria"></div><div class="field span-6"><label>Está empregada atualmente?</label><select data-key="sm.empregada"><option></option><option>Sim</option><option>Não</option></select></div><div class="field span-6"><label>Empregador</label><input data-key="sm.empregador"></div><div class="field span-6"><label>Está desempregada?</label><select data-key="sm.desempregada"><option></option><option>Sim</option><option>Não</option></select></div><div class="field span-6"><label>Era contribuinte individual/facultativa/segurada especial?</label><input data-key="sm.categoriaEspecifica"></div><div class="field span-6"><label>Houve afastamento antes do parto? Quantos dias?</label><input data-key="sm.afastamento"></div><div class="field span-6"><label>Possui certidão de nascimento/natimorto?</label><select data-key="sm.certidao"><option></option><option>Sim</option><option>Não</option><option>Não se aplica</option></select></div><div class="field span-6"><label>No caso de adoção/guarda, possui termo/nova certidão?</label><input data-key="sm.adocaoDocs"></div><div class="field span-12"><label>Observações</label><textarea data-key="sm.obs"></textarea></div></div><div id="docs-sm"></div></section>
+
+ <section id="s10" class="ficha-section"><h2>11. Serviços administrativos complementares</h2><div class="grid"><div class="field span-6"><label>Serviço solicitado</label><input data-key="comp.servico"></div><div class="field span-6"><label>Número do protocolo/NB</label><input data-key="comp.protocolo"></div><div class="field"><label>Data do protocolo</label><input type="date" data-key="comp.dataProtocolo"></div><div class="field"><label>Status atual</label><input data-key="comp.status"></div><div class="field span-6"><label>Exigência? Qual e prazo?</label><input data-key="comp.exigencia"></div><div class="field span-12"><label>Última movimentação</label><textarea data-key="comp.movimentacao"></textarea></div><div class="field span-12"><label>Documentos já anexados</label><textarea data-key="comp.docs"></textarea></div><div class="field span-12"><label>O que precisa ser feito agora?</label><textarea data-key="comp.proximo"></textarea></div><div class="field span-12"><label>Observações</label><textarea data-key="comp.obs"></textarea></div></div><div class="grid" style="margin-top:10px"><div class="field span-6"><label>Acompanhamento de requerimento</label><select data-key="comp.chk1"><option></option><option>Sim</option><option>Não</option></select></div><div class="field span-6"><label>Cumprimento de exigência</label><select data-key="comp.chk2"><option></option><option>Sim</option><option>Não</option></select></div><div class="field span-6"><label>Atualização/correção cadastral</label><select data-key="comp.chk3"><option></option><option>Sim</option><option>Não</option></select></div><div class="field span-6"><label>Organização/digitalização de documentos</label><select data-key="comp.chk4"><option></option><option>Sim</option><option>Não</option></select></div><div class="field span-6"><label>Consulta/obtenção por canais oficiais autorizados</label><select data-key="comp.chk5"><option></option><option>Sim</option><option>Não</option></select></div><div class="field span-6"><label>Cópia/organização de processo administrativo</label><select data-key="comp.chk6"><option></option><option>Sim</option><option>Não</option></select></div><div class="field span-12"><label>Outro serviço administrativo</label><input data-key="comp.outro"></div></div></section>
+
+ <section id="s11" class="ficha-section"><h2>12. Controle interno — fechamento</h2><div class="grid"><div class="field"><label>Classificação do atendimento</label><select data-key="ctrl.classificacao"><option></option><option>Atendimento administrativo simples</option><option>Requerimento</option><option>Acompanhamento</option><option>Exigência</option><option>Outro</option></select></div><div class="field span-8"><label>Serviço efetivamente contratado</label><input data-key="ctrl.servico"></div><div class="field span-12"><label>Documentos pendentes</label><textarea data-key="ctrl.pendentes"></textarea></div><div class="field span-8"><label>Próxima ação e prazo</label><textarea data-key="ctrl.proxima"></textarea></div><div class="field"><label>Responsável pelo próximo passo</label><input data-key="ctrl.responsavel"></div><div class="field span-12"><label>Questão jurídica identificada? Descrever apenas de forma objetiva, sem análise jurídica.</label><textarea data-key="ctrl.questaoJuridica"></textarea></div><div class="field span-6"><label>Encaminhamento ao advogado realizado? Quando?</label><input data-key="ctrl.encaminhamento"></div><div class="field span-6"><label>Observações do atendente</label><textarea data-key="ctrl.obs"></textarea></div></div>
+  <h3>Checklist final</h3>
+  <div class="checkline"><input type="checkbox" data-key="check.dados"><span>Dados pessoais conferidos</span></div><div class="checkline"><input type="checkbox" data-key="check.docs"><span>Documentos principais recebidos e legíveis</span></div><div class="checkline"><input type="checkbox" data-key="check.especificos"><span>Documentos específicos identificados</span></div><div class="checkline"><input type="checkbox" data-key="check.prazos"><span>Prazos e exigências conferidos</span></div><div class="checkline"><input type="checkbox" data-key="check.comparecimento"><span>Cliente informado sobre eventual comparecimento pessoal</span></div><div class="checkline"><input type="checkbox" data-key="check.arquivos"><span>Arquivos digitalizados e nomeados</span></div><div class="checkline"><input type="checkbox" data-key="check.contrato"><span>Contrato assinado, quando aplicável</span></div><div class="checkline"><input type="checkbox" data-key="check.autorizacao"><span>Autorização/procuração conferida, quando aplicável</span></div><div class="checkline"><input type="checkbox" data-key="check.juridico"><span>Questão jurídica encaminhada ao advogado, quando existente</span></div><div class="checkline"><input type="checkbox" data-key="check.protocolo"><span>Cópia do protocolo/comprovante arquivada após requerimento</span></div>
+  <div class="footer-actions"><span class="small">A ficha é local e não envia informações para a internet. Use “Salvar no computador” para gerar um arquivo .json e “Importar ficha” para reabrir depois.</span><span class="status" id="recordInfo"></span></div>
+ </section>
+
+      </div>
+
+      <div class="footer-actions pdf-exclude">
+        <button class="btn dark" id="btnAbaAnterior">← Anterior</button>
+        <button class="btn" id="btnProximaAba">Próxima →</button>
+        <span class="status" id="fichaGlobalStatus"></span>
+      </div>
+    </section>
+
+    <!-- ===================== PAINEL FICHAS SALVAS ===================== -->
+    <section id="panelFichas" class="panel">
+      <h2 style="color:var(--navy)">Fichas salvas na nuvem</h2>
+      <div class="ficha-toolbar">
+        <input type="text" class="kb-search" id="fichasSearch" placeholder="Buscar ficha por nome do cliente...">
+      </div>
+      <div class="fichas-list" id="fichasList"></div>
+    </section>
+  </main>
+</div>
+
+<!-- ===================== MODAL: NOVO/EDITAR CLIENTE ===================== -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h3 id="modalTitle">Novo cliente</h3>
+    <label>Nome completo</label>
+    <input type="text" id="mNome">
+    <label>Telefone / WhatsApp</label>
+    <input type="text" id="mTelefone">
+    <label>Tipo de benefício</label>
+    <select id="mBeneficio">
+      <option value="Aposentadoria">Aposentadoria</option>
+      <option value="Pensão por Morte">Pensão por Morte</option>
+      <option value="Auxílio Reclusão">Auxílio Reclusão</option>
+      <option value="Salário Maternidade">Salário Maternidade</option>
+      <option value="Auxílio Doença">Auxílio Doença</option>
+      <option value="Seguro Defeso">Seguro Defeso</option>
+      <option value="BPC / LOAS">BPC / LOAS</option>
+    </select>
+    <label>Fase atual</label>
+    <select id="mFase"></select>
+    <label>Observações</label>
+    <textarea id="mObs" placeholder="Anotações sobre o andamento..."></textarea>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="mCancel">Cancelar</button>
+      <button class="btn-save" id="mSave">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL: ARQUIVADOS ===================== -->
+<div class="modal-overlay" id="archiveOverlay">
+  <div class="modal">
+    <h3>Processos arquivados</h3>
+    <div class="archive-list" id="archiveList"></div>
+    <div class="modal-actions">
+      <button class="btn-cancel" id="archiveClose">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
