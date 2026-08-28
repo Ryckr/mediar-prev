@@ -2,9 +2,10 @@
 // FICHA DIGITAL DE ATENDIMENTO — MediarPrev
 // =====================================================================
 // Mesmo conteúdo previdenciário da ficha original (todas as abas e
-// checklists de documentos), agora salvando no Firestore, com
-// exportação em PDF e vínculo automático com o card do cliente no
-// painel (kanban).
+// checklists de documentos), agora salvando no Firestore, com opção
+// de salvar a ficha localmente no computador (dados gerais + serviço
+// selecionado), impressão e vínculo automático com o card do cliente
+// no painel (kanban).
 // =====================================================================
 
 import { db } from "./firebase-config.js";
@@ -37,6 +38,11 @@ const TIPO_TO_BENEFICIO = {
   s1: 'Aposentadoria', s2: 'Aposentadoria', s3: 'Auxílio Doença', s4: 'Auxílio Doença',
   s5: 'BPC / LOAS', s6: 'BPC / LOAS', s7: 'Pensão por Morte', s8: 'Auxílio Reclusão',
   s9: 'Salário Maternidade', s10: 'Aposentadoria'
+};
+// Mapeia cada aba de serviço para a sua tabela de checklist de documentos (quando houver).
+const TIPO_TO_DOCS = {
+  s1: 'docs-apo', s2: 'docs-rural', s3: 'docs-incap', s4: 'docs-acid',
+  s5: 'docs-bpc-idoso', s6: 'docs-bpc-pcd', s7: 'docs-pensao', s8: 'docs-reclusao', s9: 'docs-sm'
 };
 
 let current = 0;
@@ -234,22 +240,57 @@ export function openForClient(client) {
   showTab(0);
 }
 
-// ---------- Exportação em PDF (via impressão do navegador) ----------
+// ---------- Impressão (aba geral + serviço selecionado) ----------
 function markPrintSelected(ids) {
   document.querySelectorAll("#fichaSections section").forEach(s => s.classList.remove("print-selected"));
   ids.forEach(id => document.getElementById(id)?.classList.add("print-selected"));
 }
-function exportarTipoSelecionado() {
+function imprimirFicha() {
   const tipo = getFieldValue("triagem.tipo");
   if (!tipo) { alert("Selecione primeiro o tipo de atendimento/benefício na ficha geral."); showTab(0); return; }
   markPrintSelected(["s0", tipo]);
   window.print();
   setTimeout(() => markPrintSelected([]), 400);
 }
-function exportarFichaCompleta() {
-  markPrintSelected(tabs.map(t => t[0]));
-  window.print();
-  setTimeout(() => markPrintSelected([]), 400);
+
+// ---------- Salvar ficha localmente no computador (arquivo .json) ----------
+// Salva apenas os dados gerais (aba "Geral") e os dados do serviço/benefício
+// selecionado na ficha (aba correspondente + checklist de documentos dela).
+function coletarDadosGeralEServico(tipo) {
+  const keys = new Set();
+  document.querySelectorAll('#s0 [data-key]').forEach(el => keys.add(el.dataset.key));
+  document.querySelectorAll(`#${tipo} [data-key]`).forEach(el => keys.add(el.dataset.key));
+  const docsId = TIPO_TO_DOCS[tipo];
+  if (docsId) document.querySelectorAll(`#${docsId} [data-key]`).forEach(el => keys.add(el.dataset.key));
+  const fieldsData = {};
+  keys.forEach(key => {
+    const el = fieldEl(key);
+    if (el) fieldsData[key] = el.type === "checkbox" ? el.checked : el.value;
+  });
+  return fieldsData;
+}
+function salvarLocal() {
+  const nome = getFieldValue("cliente.nome").trim();
+  if (!nome) { alert("Informe ao menos o nome do cliente na aba Geral antes de salvar."); showTab(0); return; }
+  const tipo = getFieldValue("triagem.tipo");
+  if (!tipo) { alert("Selecione primeiro o tipo de atendimento/benefício na ficha geral."); showTab(0); return; }
+  const payload = {
+    tipo: "mediarprev_ficha",
+    versao: 1,
+    salvoEm: new Date().toISOString(),
+    clientNome: nome,
+    tipoServico: tipo,
+    tipoServicoLabel: tabs.find(t => t[0] === tipo)?.[1] || "",
+    fields: coletarDadosGeralEServico(tipo)
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const nomeArquivo = nome.normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-zA-Z0-9]+/g, "_").replace(/^_+|_+$/g, "").toLowerCase() || "ficha";
+  const a = document.createElement("a");
+  a.href = url; a.download = "ficha_" + nomeArquivo + "_" + new Date().toISOString().slice(0, 10) + ".json";
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  toast("Ficha salva no computador.");
 }
 
 // ---------- Lista de fichas salvas ----------
@@ -273,8 +314,8 @@ function renderFichasList(allFichas) {
     btns.className = "ficha-row-btns";
     const openBtn = document.createElement("button"); openBtn.className = "btn"; openBtn.textContent = "Abrir";
     openBtn.onclick = () => { loadFicha(f.id); document.getElementById("navFicha").click(); };
-    const pdfBtn = document.createElement("button"); pdfBtn.className = "btn dark"; pdfBtn.textContent = "📄 Exportar PDF";
-    pdfBtn.onclick = async () => { await loadFicha(f.id); document.getElementById("navFicha").click(); setTimeout(exportarTipoSelecionado, 250); };
+    const printBtn = document.createElement("button"); printBtn.className = "btn dark"; printBtn.textContent = "🖨 Imprimir";
+    printBtn.onclick = async () => { await loadFicha(f.id); document.getElementById("navFicha").click(); setTimeout(imprimirFicha, 250); };
     const delBtn = document.createElement("button"); delBtn.className = "btn danger"; delBtn.textContent = "Excluir";
     delBtn.onclick = async () => {
       if (!confirm('Excluir a ficha de "' + (f.clientNome || "cliente") + '"?')) return;
@@ -282,7 +323,7 @@ function renderFichasList(allFichas) {
       if (f.clientId) await updateDoc(doc(db, "clients", f.clientId), { fichaId: null }).catch(() => {});
       toast("Ficha excluída");
     };
-    btns.append(openBtn, pdfBtn, delBtn);
+    btns.append(openBtn, printBtn, delBtn);
     row.appendChild(btns);
     list.appendChild(row);
   });
@@ -327,8 +368,8 @@ export function initFicha({ onSaveLinkClient: cb, onOpenPainelClient: cb2 }) {
     if (confirm("Criar uma nova ficha? Dados não salvos na nuvem serão perdidos.")) newForm();
   });
   document.getElementById("btnSalvarNuvem").addEventListener("click", salvarNuvem);
-  document.getElementById("btnExportarTipo").addEventListener("click", exportarTipoSelecionado);
-  document.getElementById("btnExportarCompleta").addEventListener("click", exportarFichaCompleta);
+  document.getElementById("btnSalvarLocal").addEventListener("click", salvarLocal);
+  document.getElementById("btnImprimir").addEventListener("click", imprimirFicha);
   document.getElementById("btnExcluirFicha").addEventListener("click", excluirFicha);
   document.getElementById("btnLimparFicha").addEventListener("click", () => {
     if (confirm("Apagar todos os dados preenchidos nesta ficha (sem excluir da nuvem)?")) { clearFields(); toast("Campos limpos."); }
