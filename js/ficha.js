@@ -293,6 +293,40 @@ function salvarLocal() {
   toast("Ficha salva no computador.");
 }
 
+// ---------- Importar ficha salva no computador (arquivo .json) ----------
+function abrirImportarLocal() {
+  document.getElementById("fichaFileInput").click();
+}
+function importarLocal(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!data || data.tipo !== "mediarprev_ficha" || !data.fields) {
+        toast("Arquivo inválido — não é uma ficha exportada pelo sistema.");
+        return;
+      }
+      if (!confirm('Importar a ficha de "' + (data.clientNome || "cliente") + '"? Os campos preenchidos atualmente serão substituídos.')) return;
+      clearFields();
+      apply({ fields: data.fields });
+      currentFichaId = null;
+      currentClientId = null;
+      updateLinkBanner();
+      if (data.tipoServico) showTab(tabs.findIndex(t => t[0] === data.tipoServico) === -1 ? 0 : tabs.findIndex(t => t[0] === data.tipoServico));
+      else showTab(0);
+      setSyncStatus("", "Ficha importada do computador — revise e salve na nuvem se desejar.");
+      toast("Ficha importada.");
+    } catch (err) {
+      console.error(err);
+      toast("Não foi possível ler este arquivo.");
+    }
+  };
+  reader.readAsText(file, "UTF-8");
+  e.target.value = "";
+}
+
 // ---------- Lista de fichas salvas ----------
 function renderFichasList(allFichas) {
   const list = document.getElementById("fichasList");
@@ -369,6 +403,8 @@ export function initFicha({ onSaveLinkClient: cb, onOpenPainelClient: cb2 }) {
   });
   document.getElementById("btnSalvarNuvem").addEventListener("click", salvarNuvem);
   document.getElementById("btnSalvarLocal").addEventListener("click", salvarLocal);
+  document.getElementById("btnImportarLocal").addEventListener("click", abrirImportarLocal);
+  document.getElementById("fichaFileInput").addEventListener("change", importarLocal);
   document.getElementById("btnImprimir").addEventListener("click", imprimirFicha);
   document.getElementById("btnExcluirFicha").addEventListener("click", excluirFicha);
   document.getElementById("btnLimparFicha").addEventListener("click", () => {
